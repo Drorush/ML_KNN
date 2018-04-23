@@ -5,7 +5,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Random;
-
 import weka.core.Instances;
 
 public class MainHW3 {
@@ -32,20 +31,27 @@ public class MainHW3 {
 	}
 
 	public static void main(String[] args) throws Exception {
-		int num_of_folds = 10;
 		Instances trainData = loadData("auto_price.txt");
-		trainData.randomize(new Random()); // shuffle data
+		trainData.randomize(new Random()); // shuffle data ONCE !
+		tryAllCombinations(trainData);
+	}
+
+	private static void tryAllCombinations(Instances trainData) throws Exception
+	{
 		FeatureScaler fs = new FeatureScaler();
 		double currentCombinationAvgError;
 		Instances[] arr = null;
+		int num_of_folds = 10;
 
 		// m = 0 for regular training data , m = 1 for scaled training data
 		for (int m = 0; m < 2; m++) {
 			bestHyperParameteres = new int[3];
 			bestError = Double.MAX_VALUE;
-			if (m == 1) {
-				trainData = fs.scaleData(trainData);
+			if (m == 1)
+			{
+				trainData = fs.scaleData(trainData); // SCALING DATA ONCE HERE
 			}
+
 			arr = divideTrainData(trainData, num_of_folds);
 			// iterate over all possible hyperparameters
 			for (int k = 1; k <= 20; k++) {
@@ -56,7 +62,7 @@ public class MainHW3 {
 						knn.setK(k);
 						knn.setP(p);
 						knn.setWeightingScheme(weightingScheme);
-						// train X times each time with X-1 subsets
+						// train 10 times, each time with on other validation set
 						currentCombinationAvgError = getCurrentCombinationError(arr, knn, num_of_folds, null);
 						if (currentCombinationAvgError < bestError) {
 							bestError = currentCombinationAvgError;
@@ -77,46 +83,42 @@ public class MainHW3 {
 					+ majorityFunction + " for auto_price data is: " + bestError + "\n");
 		}
 
-		printMessages(trainData, bestHyperParameteres);
-
+		printFoldMessages(trainData);
 	}
 
-	private static void printMessages(Instances trainData, int[] bestHyperParameteres) throws Exception
+	private static void printFoldMessages(Instances trainData) throws Exception
 	{
 		Instances[] arr = null;
-		int[] numOfFolds = {trainData.size(), 50, 10, 5, 3};
-		int num_of_folds;
-		double currentCombinationAvgError;
-		Knn knn;
-		long[] avgFold = new long[2];
+	int[] numOfFolds = {trainData.size(), 50, 10, 5, 3};
+	int num_of_folds;
+	double currentCombinationAvgError;
+	Knn knn;
+	long[] avgFold = new long[2];
 
 		for(int i = 0; i < numOfFolds.length; i++)
-		{
-			num_of_folds = numOfFolds[i];
-			arr = divideTrainData(trainData,num_of_folds);
-			knn = new Knn();
-			knn.setK(bestHyperParameteres[0]);
-			knn.setP(bestHyperParameteres[1]);
-			knn.setWeightingScheme(bestHyperParameteres[2]);
-			currentCombinationAvgError = getCurrentCombinationError(arr, knn, num_of_folds, avgFold);
-			System.out.println("--------------------------------");
-			System.out.println("Results for " + num_of_folds + " folds:");
-			System.out.println("--------------------------------");
-			System.out.println("Cross validation error of regular knn on auto_price dataset is " + currentCombinationAvgError
-					+ " and the average elapsed time is " + avgFold[0]);
-			System.out.println("The total elapsed time is: " + avgFold[1] + "\n");
-			knn = new Knn();
-			knn.setK(bestHyperParameteres[0]);
-			knn.setP(bestHyperParameteres[1]);
-			knn.setWeightingScheme(bestHyperParameteres[2]);
-			knn.distEffCheck = true;
-			currentCombinationAvgError = getCurrentCombinationError(arr, knn, num_of_folds, avgFold);
-			System.out.println("Cross validation error of efficient knn on auto_price dataset is " + currentCombinationAvgError
-					+ " and the average elapsed time is " + avgFold[0]);
-			System.out.println("The total elapsed time is: " + avgFold[1] + "\n");
-		}
+	{
+		num_of_folds = numOfFolds[i];
+		arr = divideTrainData(trainData,num_of_folds);
+		knn = new Knn();
+		knn.setK(bestHyperParameteres[0]);
+		knn.setP(bestHyperParameteres[1]);
+		knn.setWeightingScheme(bestHyperParameteres[2]);
+		currentCombinationAvgError = getCurrentCombinationError(arr, knn, num_of_folds, avgFold);
+		System.out.println("--------------------------------");
+		System.out.println("Results for " + num_of_folds + " folds:");
+		System.out.println("--------------------------------");
+		System.out.println("Cross validation error of regular knn on auto_price dataset is " + currentCombinationAvgError
+				+ " and the average elapsed time is " + avgFold[0]);
+		System.out.println("The total elapsed time is: " + avgFold[1] + "\n");
 
+		knn.distEffCheck = true;
+		currentCombinationAvgError = getCurrentCombinationError(arr, knn, num_of_folds, avgFold);
+		System.out.println("Cross validation error of efficient knn on auto_price dataset is " + currentCombinationAvgError
+				+ " and the average elapsed time is " + avgFold[0]);
+		System.out.println("The total elapsed time is: " + avgFold[1] + "\n");
 	}
+
+}
 
 	private static Instances createTrainingData(Instances[] arr, int j)
 	{
@@ -158,7 +160,6 @@ public class MainHW3 {
 
 	private static double getCurrentCombinationError(Instances[] arr, Knn knn, int num_of_folds, long[] avgFold) throws Exception
 	{
-
 		double currentCombinationError = 0;
 		long time;
 		long timeOfSingleFold;
@@ -180,7 +181,7 @@ public class MainHW3 {
 			avgFold[1] = timeOfAvgFold;
 		}
 
-		return currentCombinationError/num_of_folds;
+		return currentCombinationError/(double)num_of_folds;
 	}
 
 }

@@ -1,4 +1,5 @@
 package HomeWork3;
+import com.sun.scenario.effect.impl.sw.sse.SSEBlend_SRC_OUTPeer;
 import weka.classifiers.Classifier;
 import weka.core.Capabilities;
 import weka.core.Instance;
@@ -9,7 +10,6 @@ import java.util.*;
 class DistanceCalculator {
 
     protected boolean m_Efficient = false;
-
     /**
     * We leave it up to you whether you want the distance method to get all relevant
     * parameters(lp, efficient, etc..) or have it as a class variables.
@@ -86,7 +86,7 @@ class DistanceCalculator {
         {
             difference = one.value(i) - two.value(i);
             distance += Math.pow(Math.abs(difference),p);
-            if (distance > kNeighborDist) break;
+            if (distance >= Math.pow(kNeighborDist,p)) break;
         }
 
         switch(p)
@@ -173,7 +173,6 @@ public class Knn implements Classifier {
             error += Math.abs(singleError);
         }
 
-
         return error/((double)insatnces.size());
     }
 
@@ -199,6 +198,7 @@ public class Knn implements Classifier {
         Map<Instance, Double> map = new HashMap<>();
         HashSet<Instance> kNeighbors = new HashSet<>();
 
+
         return distEffCheck ? efficientNearestNeighbors(instance, map, kNeighbors, distCalc) :unEfficientFindNearestNeighbors(instance, kNeighbors, distCalc, map);
     }
 
@@ -206,24 +206,32 @@ public class Knn implements Classifier {
     {
         Instance secondInstance;
         double dist;
-        double kNeighborDistance = Double.MIN_VALUE;
+        double kNeighborDistance = -1;
         Instance kNeighbor = null;
         distCalc.m_Efficient = false;
-        // at first get k neighbors
-        for (int i = 0; i < k; i++)
+        distEffCheck = false;
+        InstanceComparator ic = new InstanceComparator();
+        // at first get k neighbors with non-efficient calculation
+        int i = 0;
+        while (i < k || map.size() < k)
         {
-            secondInstance = m_trainingInstances.instance(i);
+            secondInstance = m_trainingInstances.instance(i++);
             dist = distCalc.distance(instance, secondInstance, p, kNeighborDistance);
-            map.put(secondInstance, dist);
-            if (dist > kNeighborDistance) {
-                kNeighborDistance = dist;
-                kNeighbor = secondInstance;
+            if (ic.compare(instance,secondInstance) != 0)
+            {
+                map.put(secondInstance, dist);
+                if (dist > kNeighborDistance)
+                {
+                    kNeighborDistance = dist;
+                    kNeighbor = secondInstance;
+                }
             }
         }
 
+        distEffCheck = true;
         distCalc.m_Efficient = true;
             // check efficiently the dist of rest of the instances.
-            for (int j = k; j < m_trainingInstances.size(); j++)
+            for (int j = i; j < m_trainingInstances.size(); j++)
             {
                 secondInstance = m_trainingInstances.instance(j);
                 dist = distCalc.distance(instance,secondInstance,p, kNeighborDistance);
@@ -232,7 +240,7 @@ public class Knn implements Classifier {
                     map.remove(kNeighbor);
                     map.put(secondInstance, dist);
                     // find the new kNeighbor and his dist
-                    kNeighborDistance = Double.MIN_VALUE;
+                    kNeighborDistance = -1;
                     for (Instance key : map.keySet())
                     {
                         dist = map.get(key);
@@ -339,7 +347,7 @@ public class Knn implements Classifier {
                 return inst.value(m_trainingInstances.classIndex());
             }
 
-            wi = 1.0 / Math.pow(dist,2);
+            wi = 1.0 / (Math.pow(dist,2));
             if (wi > 0)
             {
                 numerator += wi * inst.value(m_trainingInstances.classIndex());
