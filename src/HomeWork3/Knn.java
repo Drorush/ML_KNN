@@ -86,7 +86,7 @@ class DistanceCalculator {
         {
             difference = one.value(i) - two.value(i);
             distance += Math.pow(Math.abs(difference),p);
-            if (distance >= Math.pow(kNeighborDist,p)) break;
+            if (distance > Math.pow(kNeighborDist,p)) break;
         }
 
         switch(p)

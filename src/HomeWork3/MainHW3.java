@@ -33,6 +33,9 @@ public class MainHW3 {
 	public static void main(String[] args) throws Exception {
 		Instances trainData = loadData("auto_price.txt");
 		trainData.randomize(new Random()); // shuffle data ONCE !
+
+		/** the diff in validation error of regular and efficient with the same fold
+		is tiny and negligible, the cause is probably the long/order of double calculations **/
 		tryAllCombinations(trainData);
 	}
 
